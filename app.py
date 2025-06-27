@@ -40,7 +40,7 @@ def conversar_com_mikael(pergunta_usuario):
     ]
     try:
         response = openai.ChatCompletion.create(
-            model="gpt-4",
+            model="gpt-3.5-turbo",
             messages=messages,
             temperature=0.8
         )
