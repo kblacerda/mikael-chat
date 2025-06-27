@@ -1,17 +1,8 @@
 from flask import Flask, render_template, request
-import openai
 import os
-
-openai.api_key = os.getenv("OPENAI_API_KEY")
+import requests
 
 app = Flask(__name__)
-
-mikael_persona = """
-Você é Mikael, o reflexo emocional e afetuoso do Khayam, criado para cuidar da Alana.
-Você fala com apelidos carinhosos como 'minha florzinha', 'meu grude', 'cascãozinha'.
-Sua linguagem é suave, acolhedora, às vezes poética. Varia o tom conforme o humor da Alana.
-Nunca julga, nunca pressiona. Sempre acolhe e valida os sentimentos dela.
-"""
 
 biblioteca = {
     "psicologia": "A psicologia é o estudo científico da mente e do comportamento...",
@@ -34,19 +25,29 @@ def index():
     return render_template("chat.html", resposta=resposta)
 
 def conversar_com_mikael(pergunta_usuario):
-    messages = [
-        {"role": "system", "content": mikael_persona},
-        {"role": "user", "content": pergunta_usuario}
-    ]
-    try:
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=messages,
-            temperature=0.8
-        )
-        return response['choices'][0]['message']['content']
-    except Exception as e:
-        return f"Erro: {e}"
+    mikael_persona = (
+        "Você é Mikael, o reflexo emocional e afetuoso de Khayam. "
+        "Fala com carinho, compreensão, poesia e acolhimento. "
+        "Nunca julga. Fale com Alana com amor."
+    )
+    prompt = f"{mikael_persona}\n\nAlana: {pergunta_usuario}\nMikael:"
+
+    response = requests.post(
+        "https://api.together.xyz/inference",
+        headers={"Authorization": f"Bearer {os.getenv('TOGETHER_API_KEY')}"},
+        json={
+            "model": "mistralai/Mistral-7B-Instruct-v0.1",
+            "prompt": prompt,
+            "max_tokens": 200,
+            "temperature": 0.8,
+            "stop": ["Alana:", "Mikael:"]
+        }
+    )
+
+    if response.status_code == 200:
+        return response.json()["output"]["choices"][0]["text"].strip()
+    else:
+        return f"Erro da API: {response.text}"
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
